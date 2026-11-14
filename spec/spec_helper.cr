@@ -1,7 +1,6 @@
 require "file_utils"
 
 require "spec-kemal"
-require "micrate"
 
 require "dotenv"
 Dotenv.load ".env.#{ENV["ENV"]}"
@@ -15,8 +14,7 @@ Spec.before_suite do
     File.delete(db_file_path)
   end
 
-  Micrate::DB.connection_url = ENV["DATABASE_URL"]
-  Micrate::Cli.run_up
+  App::Lib::Migrator.up(App::Lib::Database::URL)
 
   Kemal.config.logging = false
 end
@@ -32,12 +30,12 @@ def create_test_user
     raise "Test user creation failed #{error_messages}"
   end
 
-  user
+  changeset.instance
 end
 
 def create_test_link(user, url)
   link = App::Models::Link.new
-  link.slug = App::Services::SlugService.shorten_url(url, user.id)
+  link.slug = App::Services::SlugService.shorten_url(url, user.id.not_nil!)
   link.url = url
   link.user = user
 
@@ -47,9 +45,10 @@ def create_test_link(user, url)
     raise "Test link creation failed: #{error_messages}"
   end
 
-  link.clicks = [] of App::Models::Click
+  inserted_link = changeset.instance
+  inserted_link.clicks = [] of App::Models::Click
 
-  link
+  inserted_link
 end
 
 def create_test_click(link)
@@ -61,17 +60,17 @@ def create_test_click(link)
   click.country = "US"
   click.created_at = Time.utc
   click.link = link
-  click.link_id = link.id
+  click.link_id = link.id.not_nil!
 
   changeset = App::Lib::Database.insert(click)
   unless changeset.valid?
     error_messages = changeset.errors.map { |error| "#{error}" }.join(", ")
     raise "Test click creation failed: #{error_messages}"
   end
-  click
+  changeset.instance
 end
 
-def get_test_link(link_id: Int64)
+def get_test_link(link_id : Int64)
   query = App::Lib::Database::Query.where(id: link_id).limit(1)
   link = App::Lib::Database.all(App::Models::Link, query, preload: [:clicks]).first?
 
@@ -80,6 +79,16 @@ def get_test_link(link_id: Int64)
   link
 end
 
-def delete_test_link(link_id: Int64)
+def wait_for_clicks(link_id : Int64, expected : Int32)
+  20.times do
+    link = get_test_link(link_id)
+    return link if link.clicks.size >= expected
+    sleep 0.05.seconds
+  end
+
+  get_test_link(link_id)
+end
+
+def delete_test_link(link_id : Int64)
   App::Lib::Database.raw_exec("DELETE FROM links WHERE id = (?)", link_id) # tempfix: Database.delete does not work
 end
