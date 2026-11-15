@@ -17,7 +17,10 @@ FROM alpine:3.22 AS runtime
 ENV ENV=production
 WORKDIR /usr/src/app
 
+# Include curl and trusted certificates for Coolify health checks.
 RUN apk add --no-cache \
+    curl \
+    ca-certificates \
     gc-dev \
     pcre2 \
     sqlite-libs \
