@@ -13,12 +13,13 @@ RUN apt-get update && apt-get install -y \
     && echo "deb [signed-by=/etc/apt/trusted.gpg.d/84codes_crystal.gpg] https://packagecloud.io/84codes/crystal/debian/ bookworm main" > /etc/apt/sources.list.d/84codes_crystal.list
 
 # 👇 pin Crystal to 1.12.x (works with Kemal 1.5.0)
-RUN apt-get update && apt-get install -y \
-    crystal=1.12.2-139 \
-    libssl-dev \
-    libyaml-dev \
-    libsqlite3-dev \
-    libevent-dev \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    libssl3 \
+    libyaml-0-2 \
+    sqlite3 \
+    libevent-2.1-7 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . .
