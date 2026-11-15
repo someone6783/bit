@@ -88,6 +88,7 @@ Recommended for lower latency communication (no host network traversal)
 ## Documentation
 - [API Reference](https://sjdonado.github.io/bit/)
 - [Local Development](docs/SETUP.md)
+- [Grafana analytics](docs/GRAFANA.md)
 
 ## Contributing
 Found an issue or have a suggestion? Please follow our [contribution guidelines](CONTRIBUTING.md).

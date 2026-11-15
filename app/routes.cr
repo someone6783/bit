@@ -13,6 +13,10 @@ module App
     Controllers::PingController.new(env).ping
   end
 
+  get "/api/metrics" do |env|
+    Controllers::MetricsController.new(env).index
+  end
+
   get "/api/links" do |env|
     Controllers::LinkController.new(env).list_all
   end

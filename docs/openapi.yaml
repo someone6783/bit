@@ -24,6 +24,34 @@ security:
   - ApiKeyAuth: []
 
 paths:
+  /api/metrics:
+    get:
+      summary: Export Prometheus analytics
+      description: |
+        Database snapshot gauges for the authenticated user's links and clicks,
+        with breakdowns by slug, country, browser, OS, and referrer.
+        Values can decrease when links are deleted; do not use rate() or increase().
+      operationId: getMetrics
+      tags:
+        - Analytics
+      responses:
+        '200':
+          description: Prometheus text exposition (version 0.0.4)
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: |
+                # HELP bit_clicks Number of stored clicks for this user.
+                # TYPE bit_clicks gauge
+                bit_clicks 42
+        '401':
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /api/ping:
     get:
       summary: Ping the API

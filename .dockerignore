@@ -42,3 +42,5 @@ DOCKER_MIGRATION.md
 Dockerfile
 docker-compose.yml
 .dockerignore
+
+monitoring/api-key

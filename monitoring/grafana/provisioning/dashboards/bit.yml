@@ -1,0 +1,7 @@
+apiVersion: 1
+providers:
+  - name: Bit
+    folder: Bit
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards
