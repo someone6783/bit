@@ -6,7 +6,8 @@ module App::Middlewares
     exclude ["/api/ping", "/:slug"]
 
     def call(env)
-      return call_next(env) if exclude_match?(env)
+      # /metrics is a protected endpoint even though it matches /:slug.
+      return call_next(env) if env.request.path.rstrip('/') != "/metrics" && exclude_match?(env)
       begin
         user = Database.get_by!(User, api_key: env.request.headers["X-Api-Key"])
         env.set "user", user

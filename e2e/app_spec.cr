@@ -41,6 +41,17 @@ describe "bit application" do
       wait_for_server(app_url)
       headers = HTTP::Headers{"Content-Type" => "application/json", "X-Api-Key" => api_key}
 
+      {"/metrics", "/metrics/", "/api/metrics"}.each do |path|
+        HTTP::Client.get("#{app_url}#{path}").status_code.should eq(401)
+        HTTP::Client.get("#{app_url}#{path}", headers: HTTP::Headers{"X-Api-Key" => "invalid"}).status_code.should eq(401)
+        HTTP::Client.head("#{app_url}#{path}").status_code.should eq(401)
+        HTTP::Client.head("#{app_url}#{path}", headers: headers).status_code.should eq(200)
+        empty = HTTP::Client.get("#{app_url}#{path}", headers: headers)
+        empty.status_code.should eq(200)
+        empty.body.should contain("bit_links 0\n")
+        empty.body.should contain("bit_clicks 0\n")
+      end
+
       unauthorized = HTTP::Client.get("#{app_url}/api/links")
       unauthorized.status_code.should eq(401)
 
@@ -68,9 +79,24 @@ describe "bit application" do
       clicks.not_nil!.size.should eq(1)
       clicks.not_nil!.first["referer"].as_s.should eq("source.example.com")
 
+      {"/metrics", "/metrics/", "/api/metrics"}.each do |path|
+        metrics = HTTP::Client.get("#{app_url}#{path}", headers: headers)
+        metrics.status_code.should eq(200)
+        metrics.headers["Content-Type"].should eq("text/plain; version=0.0.4; charset=utf-8")
+        metrics.headers["Cache-Control"].should eq("no-store")
+        metrics.body.should contain("bit_links 1\n")
+        metrics.body.should contain("bit_clicks 1\n")
+        metrics.body.should contain("bit_clicks_by_referer{referer=\"source.example.com\"} 1\n")
+      end
+
       deleted = HTTP::Client.delete("#{app_url}/api/links/#{link_id}", headers: headers)
       deleted.status_code.should eq(204)
       HTTP::Client.get(refer).status_code.should eq(404)
+      {"/metrics", "/metrics/", "/api/metrics"}.each do |path|
+        metrics = HTTP::Client.get("#{app_url}#{path}", headers: headers)
+        metrics.body.should contain("bit_links 0\n")
+        metrics.body.should contain("bit_clicks 0\n")
+      end
       success = true
     ensure
       process.signal(Signal::TERM) rescue nil

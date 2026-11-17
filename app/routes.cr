@@ -8,6 +8,10 @@ use App::Middlewares::Auth.new
 module App
   get "/:slug", &App::Controllers::ClickController.redirect_handler
 
+  get "/metrics" do |env|
+    Controllers::MetricsController.new(env).index
+  end
+
   # Namespace /api
   get "/api/ping" do |env|
     Controllers::PingController.new(env).ping

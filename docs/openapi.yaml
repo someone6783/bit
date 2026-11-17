@@ -24,6 +24,27 @@ security:
   - ApiKeyAuth: []
 
 paths:
+  /metrics:
+    get:
+      summary: Export Prometheus analytics
+      description: Authenticated alias of /api/metrics with the same per-user snapshot gauges.
+      operationId: getMetricsAlias
+      tags:
+        - Analytics
+      responses:
+        '200':
+          description: Prometheus text exposition (version 0.0.4)
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /api/metrics:
     get:
       summary: Export Prometheus analytics
