@@ -1,7 +1,7 @@
 # Grafana analytics
 
-Bit exports persisted click analytics at `GET /api/metrics` in Prometheus text
-format. Authenticate with the existing `X-Api-Key` header. Each key sees only
+Bit exports persisted click analytics at `GET /metrics` (also available at `GET /api/metrics`)
+in Prometheus text format. Authenticate with the existing `X-Api-Key` header. Each key sees only
 its owner's links and clicks, including the admin key. No visitor IPs, raw user
 agents, destination URLs, or API keys appear in metric labels.
 
