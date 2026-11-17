@@ -41,7 +41,7 @@ describe "bit application" do
       wait_for_server(app_url)
       headers = HTTP::Headers{"Content-Type" => "application/json", "X-Api-Key" => api_key}
 
-      {"/metrics", "/metrics/", "/api/metrics"}.each do |path|
+      {"/api/metrics"}.each do |path|
         HTTP::Client.get("#{app_url}#{path}").status_code.should eq(401)
         HTTP::Client.get("#{app_url}#{path}", headers: HTTP::Headers{"X-Api-Key" => "invalid"}).status_code.should eq(401)
         HTTP::Client.head("#{app_url}#{path}").status_code.should eq(401)
@@ -50,6 +50,14 @@ describe "bit application" do
         empty.status_code.should eq(200)
         empty.body.should contain("bit_links 0\n")
         empty.body.should contain("bit_clicks 0\n")
+      end
+
+      {"/metrics", "/metrics/"}.each do |path|
+        metrics = HTTP::Client.get("#{app_url}#{path}")
+        metrics.status_code.should eq(200)
+        metrics.body.should contain("bit_links 0\n")
+        metrics.body.should contain("bit_http_request_duration_seconds_count ")
+        HTTP::Client.head("#{app_url}#{path}").status_code.should eq(200)
       end
 
       unauthorized = HTTP::Client.get("#{app_url}/api/links")
@@ -79,7 +87,7 @@ describe "bit application" do
       clicks.not_nil!.size.should eq(1)
       clicks.not_nil!.first["referer"].as_s.should eq("source.example.com")
 
-      {"/metrics", "/metrics/", "/api/metrics"}.each do |path|
+      {"/api/metrics"}.each do |path|
         metrics = HTTP::Client.get("#{app_url}#{path}", headers: headers)
         metrics.status_code.should eq(200)
         metrics.headers["Content-Type"].should eq("text/plain; version=0.0.4; charset=utf-8")
@@ -89,10 +97,17 @@ describe "bit application" do
         metrics.body.should contain("bit_clicks_by_referer{referer=\"source.example.com\"} 1\n")
       end
 
+      service = HTTP::Client.get("#{app_url}/metrics")
+      service.body.should contain("bit_links 1\n")
+      service.body.should contain("bit_clicks 1\n")
+      service.body.should contain("bit_http_requests_total{method=\"GET\",route=\"/:slug\",status=\"301\"} 1\n")
+      service.body.should contain("bit_http_requests_total{method=\"GET\",route=\"/api/links\",status=\"401\"} 1\n")
+      service.body.should_not contain("source.example.com")
+
       deleted = HTTP::Client.delete("#{app_url}/api/links/#{link_id}", headers: headers)
       deleted.status_code.should eq(204)
       HTTP::Client.get(refer).status_code.should eq(404)
-      {"/metrics", "/metrics/", "/api/metrics"}.each do |path|
+      {"/api/metrics"}.each do |path|
         metrics = HTTP::Client.get("#{app_url}#{path}", headers: headers)
         metrics.body.should contain("bit_links 0\n")
         metrics.body.should contain("bit_clicks 0\n")

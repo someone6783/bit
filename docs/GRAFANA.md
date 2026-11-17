@@ -1,9 +1,65 @@
-# Grafana analytics
+# Prometheus monitoring and Grafana analytics
 
-Bit exports persisted click analytics at `GET /metrics` (also available at `GET /api/metrics`)
-in Prometheus text format. Authenticate with the existing `X-Api-Key` header. Each key sees only
-its owner's links and clicks, including the admin key. No visitor IPs, raw user
-agents, destination URLs, or API keys appear in metric labels.
+## Service monitoring
+
+`GET /metrics` is a public Prometheus scrape endpoint for the whole service.
+It needs no API key and contains aggregate operational data, with no slugs,
+URLs, referrers, API keys or user identifiers. `/metrics/` also works.
+Use a network or reverse-proxy access rule if these totals should stay internal.
+
+```yaml
+scrape_configs:
+  - job_name: bit-service
+    metrics_path: /metrics
+    static_configs:
+      - targets: [short.example.com:443]
+    scheme: https
+```
+
+```bash
+curl http://localhost:4000/metrics
+```
+
+| Metric | Type | Meaning |
+| --- | --- | --- |
+| `bit_links`, `bit_clicks`, `bit_users` | gauge | Current database totals across all users |
+| `bit_uptime_seconds` | gauge | Time since this process started |
+| `bit_http_requests_total` | counter | Completed requests by `method`, `route` template and HTTP `status` |
+| `bit_http_request_duration_seconds` | histogram | HTTP handler duration in seconds, with `_bucket`, `_sum` and `_count` |
+
+Useful PromQL for a five-minute window:
+
+```promql
+# Average request time in seconds
+rate(bit_http_request_duration_seconds_sum{job="bit-service"}[5m])
+/ rate(bit_http_request_duration_seconds_count{job="bit-service"}[5m])
+
+# 95th percentile request time in seconds
+histogram_quantile(0.95, rate(bit_http_request_duration_seconds_bucket{job="bit-service"}[5m]))
+
+# Requests per second
+sum(rate(bit_http_requests_total{job="bit-service"}[5m]))
+
+# Server errors per second
+sum(rate(bit_http_requests_total{job="bit-service",status=~"5.."}[5m]))
+```
+
+Request counters and histogram values reset on process restart. Durations use a
+monotonic clock, include authentication and error handling, and exclude background
+click persistence and network transfer after the handler completes. Service scrapes
+are excluded so Prometheus does not inflate traffic or latency statistics. Routes
+use templates such as `/:slug` and `/api/links/:id`; unmatched routes and unsupported
+methods use fixed labels. Database totals can decrease after deletions; clicks
+appear after asynchronous persistence. An idle service has no average latency until
+it has served requests. The supplied Prometheus config scrapes service metrics under
+`bit-service` and authenticated analytics under `bit`.
+
+## Per-user analytics
+
+`GET /api/metrics` exports persisted click analytics in Prometheus text format.
+Authenticate with `X-Api-Key`. Each key sees only its owner's links and clicks,
+including the admin key. This endpoint includes per-link and visitor-dimension
+labels and is separate from public service monitoring.
 
 ## Start the optional monitoring stack
 

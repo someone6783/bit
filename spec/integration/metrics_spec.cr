@@ -1,6 +1,6 @@
 require "../spec_helper"
 
-{"/metrics", "/metrics/", "/api/metrics"}.each do |path|
+{"/api/metrics"}.each do |path|
   describe "App::Controllers::Metrics at #{path}" do
     it "rejects missing and invalid API keys" do
       get path
