@@ -26,11 +26,16 @@ security:
 paths:
   /metrics:
     get:
-      summary: Export Prometheus analytics
-      description: Authenticated alias of /api/metrics with the same per-user snapshot gauges.
-      operationId: getMetricsAlias
+      summary: Export service-wide Prometheus metrics
+      description: |
+        Public service totals (users, links and stored clicks), process uptime,
+        completed HTTP request counters and a request duration histogram.
+        Does not expose per-user or per-link analytics. HTTP observations reset
+        on process restart and exclude /metrics scrapes.
+      operationId: getServiceMetrics
+      security: []
       tags:
-        - Analytics
+        - Monitoring
       responses:
         '200':
           description: Prometheus text exposition (version 0.0.4)
@@ -38,12 +43,6 @@ paths:
             text/plain:
               schema:
                 type: string
-        '401':
-          description: Missing or invalid API key
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
 
   /api/metrics:
     get:
