@@ -2,6 +2,7 @@ require "./controllers/**"
 
 require "kemal"
 
+use App::Middlewares::Metrics.new, 0
 use App::Middlewares::CORSHandler.new
 use App::Middlewares::Auth.new
 
@@ -9,7 +10,9 @@ module App
   get "/:slug", &App::Controllers::ClickController.redirect_handler
 
   get "/metrics" do |env|
-    Controllers::MetricsController.new(env).index
+    env.response.content_type = "text/plain; version=0.0.4; charset=utf-8"
+    env.response.headers["Cache-Control"] = "no-store"
+    Lib::ServiceMetrics.render
   end
 
   # Namespace /api
