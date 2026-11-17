@@ -17,6 +17,8 @@ jobs:
         run: sudo apt-get update
       - name: Install Crystal
         uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: 1.21.1
       - name: Install dependencies
         run: shards install
       - name: Build application
